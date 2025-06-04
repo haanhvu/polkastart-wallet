@@ -2,4 +2,4 @@ PolkaStart Wallet is an Android mobile app where users can explore real Polkadot
 
 **Note**
 
-The wallet is in an early stage of development. It currently supports the ed25519 key type to simplify onboarding and development. Support for sr25519 will be added in the future when more advanced use cases emerge and require this.
+The wallet is in an early stage of development. It currently supports `ed25519` key type to simplify onboarding and development. Support for `sr25519` will be added in the future when more advanced use cases emerge and require this key type.
