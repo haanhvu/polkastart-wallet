@@ -18,12 +18,6 @@ fun generateKeyPairFromMnemonic(mnemonic: String): Pair<ByteArray, ByteArray> {
     return Pair(privKey.encoded, pubKey.encoded)
 }
 
-fun generateMnemonic(): String {
-    val entropy = ByteArray(16)
-    SecureRandom().nextBytes(entropy)
-    return MnemonicUtils.generateMnemonic(entropy)
-}
-
 // Minimal BIP39-to-seed derivation (simplified)
 fun mnemonicToSeed(mnemonic: String, passphrase: String): ByteArray {
     val salt = "mnemonic$passphrase"
