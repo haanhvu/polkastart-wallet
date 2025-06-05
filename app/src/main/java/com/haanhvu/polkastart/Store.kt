@@ -10,6 +10,11 @@ fun storeMnemonic(context: Context, mnemonic: String) {
     prefs.edit().putString("mnemonic", mnemonic).apply()
 }
 
+fun getStoredMnemonic(context: Context): String? {
+    val prefs = getSecurePrefs(context)
+    return prefs.getString("mnemonic", null)
+}
+
 fun getSecurePrefs(context: Context): SharedPreferences {
     val masterKey = MasterKey.Builder(context)
         .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
