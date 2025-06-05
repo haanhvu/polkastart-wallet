@@ -3,14 +3,6 @@ package com.haanhvu.polkastart
 import org.bouncycastle.crypto.digests.Blake2bDigest
 import org.bitcoinj.core.Base58
 
-fun blake2b512(input: ByteArray): ByteArray {
-    val digest = Blake2bDigest(512)
-    digest.update(input, 0, input.size)
-    val out = ByteArray(64)
-    digest.doFinal(out, 0)
-    return out
-}
-
 fun publicKeyToSS58Address(pubKey: ByteArray, networkPrefix: Byte = 0): String {
     // 1. prefix + pubkey
     val addressBytes = ByteArray(1 + pubKey.size + 2) // prefix + pubkey + checksum(2 bytes)
@@ -31,3 +23,12 @@ fun publicKeyToSS58Address(pubKey: ByteArray, networkPrefix: Byte = 0): String {
     // 4. base58 encode
     return Base58.encode(addressBytes)
 }
+
+fun blake2b512(input: ByteArray): ByteArray {
+    val digest = Blake2bDigest(512)
+    digest.update(input, 0, input.size)
+    val out = ByteArray(64)
+    digest.doFinal(out, 0)
+    return out
+}
+
