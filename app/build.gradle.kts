@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    kotlin("plugin.serialization") version "2.0.21"
 }
 
 android {
@@ -36,15 +37,16 @@ android {
 }
 
 dependencies {
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
-    implementation("org.bitcoinj:bitcoinj-core:0.15.10") // for Base58 encoding
-    implementation("org.bouncycastle:bcprov-jdk15on:1.70")
-    implementation("org.bouncycastle:bcprov-jdk15to18:1.78")
-    implementation("org.web3j:core:4.9.8")
+    implementation("org.bitcoinj:bitcoinj-core:0.15.10") {
+        exclude(group = "org.bouncycastle", module = "bcprov-jdk15on")
+    } // for Base58 encoding
+    implementation("org.web3j:core:4.9.8") {
+        exclude(group = "org.bouncycastle", module = "bcprov-jdk15on")
+    }
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
