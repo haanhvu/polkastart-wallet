@@ -44,6 +44,8 @@ dependencies {
     implementation("org.bitcoinj:bitcoinj-core:0.15.10") {
         exclude(group = "org.bouncycastle", module = "bcprov-jdk15on")
     } // for Base58 encoding
+    implementation("org.java-websocket:Java-WebSocket:1.5.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
     implementation("org.web3j:core:4.9.8") {
         exclude(group = "org.bouncycastle", module = "bcprov-jdk15on")
     }
