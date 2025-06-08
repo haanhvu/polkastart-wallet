@@ -2,14 +2,13 @@ package com.haanhvu.polkastart
 
 import org.bitcoinj.core.Base58
 import org.bouncycastle.crypto.digests.Blake2bDigest
-import org.junit.Assert.*
 import org.junit.Test
 import org.web3j.utils.Numeric
 
-class UnitTests {
+class WestendAddressUnitTests {
     @Test
     fun testAddressSS58Westend() {
-        val mnemonic = "common reunion close wrap fresh give make pattern wink huge edit text"
+        val mnemonic = generateMnemonic()
         val keyPair = generateKeyPairFromMnemonic(mnemonic)
         val pubKey = keyPair.second
         val pubKeyHex = pubKey.joinToString("") { "%02x".format(it) }
