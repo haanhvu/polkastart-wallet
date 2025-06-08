@@ -7,16 +7,22 @@ import org.web3j.utils.Numeric
 
 class WestendAddressUnitTests {
     @Test
-    fun testAddressSS58Westend() {
+    fun testGenerateSS58WestendAddress() {
+        val pubKeyHexAndAddress = generateSS58WestendPubkeyHexAndAddress()
+        checkSS58WestendAddress(pubKeyHexAndAddress.second, pubKeyHexAndAddress.first)
+    }
+
+    fun generateSS58WestendPubkeyHexAndAddress(): Pair<String, String> {
         val mnemonic = generateMnemonic()
         val keyPair = generateKeyPairFromMnemonic(mnemonic)
         val pubKey = keyPair.second
         val pubKeyHex = pubKey.joinToString("") { "%02x".format(it) }
         val address = publicKeyToSS58Address(pubKey, 42)
-        checkWestendAddress(address, pubKeyHex)
+
+        return Pair(pubKeyHex, address)
     }
 
-    private fun checkWestendAddress(address: String, expectedPublicKeyHex: String) {
+    private fun checkSS58WestendAddress(address: String, expectedPublicKeyHex: String) {
         val decoded = Base58.decode(address)
 
         // Step 1: Check prefix (Westend = 42 decimal = 0x2A hex)
