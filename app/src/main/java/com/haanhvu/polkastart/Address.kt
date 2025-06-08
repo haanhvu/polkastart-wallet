@@ -4,23 +4,22 @@ import org.bouncycastle.crypto.digests.Blake2bDigest
 import org.bitcoinj.core.Base58
 
 fun publicKeyToSS58Address(pubKey: ByteArray, networkPrefix: Byte = 0): String {
-    // 1. prefix + pubkey
-    val addressBytes = ByteArray(1 + pubKey.size + 2) // prefix + pubkey + checksum(2 bytes)
-    addressBytes[0] = networkPrefix
-    System.arraycopy(pubKey, 0, addressBytes, 1, pubKey.size)
+    // Step 1: Prepare address data (prefix + publicKey)
+    val data = ByteArray(1 + pubKey.size)
+    data[0] = networkPrefix
+    System.arraycopy(pubKey, 0, data, 1, pubKey.size)
 
-    // 2. calculate checksum
-    val checksumInput = ByteArray(1 + pubKey.size)
-    checksumInput[0] = networkPrefix
-    System.arraycopy(pubKey, 0, checksumInput, 1, pubKey.size)
-
+    // Step 2: Compute SS58 checksum using "SS58PRE" prefix
+    val checksumInput = "SS58PRE".toByteArray() + data
     val hash = blake2b512(checksumInput)
 
-    // 3. first 2 bytes of hash are checksum
+    // Step 3: Combine prefix + pubKey + first 2 bytes of checksum
+    val addressBytes = ByteArray(data.size + 2)
+    System.arraycopy(data, 0, addressBytes, 0, data.size)
     addressBytes[addressBytes.size - 2] = hash[0]
     addressBytes[addressBytes.size - 1] = hash[1]
 
-    // 4. base58 encode
+    // Step 4: Base58 encode full address
     return Base58.encode(addressBytes)
 }
 
