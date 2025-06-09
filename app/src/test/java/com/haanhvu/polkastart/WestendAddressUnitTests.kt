@@ -12,16 +12,6 @@ class WestendAddressUnitTests {
         checkSS58WestendAddress(pubKeyHexAndAddress.second, pubKeyHexAndAddress.first)
     }
 
-    fun generateSS58WestendPubkeyHexAndAddress(): Pair<String, String> {
-        val mnemonic = generateMnemonic()
-        val keyPair = generateKeyPairFromMnemonic(mnemonic)
-        val pubKey = keyPair.second
-        val pubKeyHex = pubKey.joinToString("") { "%02x".format(it) }
-        val address = publicKeyToSS58Address(pubKey, 42)
-
-        return Pair(pubKeyHex, address)
-    }
-
     private fun checkSS58WestendAddress(address: String, expectedPublicKeyHex: String) {
         val decoded = Base58.decode(address)
 

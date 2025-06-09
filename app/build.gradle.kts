@@ -41,9 +41,11 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    implementation("com.ionspin.kotlin:bignum:0.3.8")
     implementation("org.bitcoinj:bitcoinj-core:0.15.10") {
         exclude(group = "org.bouncycastle", module = "bcprov-jdk15on")
     } // for Base58 encoding
+    implementation("org.bouncycastle:bcprov-jdk15to18:1.70")
     implementation("org.java-websocket:Java-WebSocket:1.5.3")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
     implementation("org.web3j:core:4.9.8") {
