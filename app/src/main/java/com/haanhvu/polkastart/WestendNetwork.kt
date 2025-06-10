@@ -119,7 +119,7 @@ fun getAccountInfoThroughWebSocket(publicKey: ByteArray, onResult: (BigDecimal?)
 
 
                 val balance = BigDecimal(accountInfo.free.toString())
-                    .divide(BigDecimal("10000000000"))
+                    .divide(BigDecimal("1000000000000"))
                 onResult(balance)
             } catch (e: Exception) {
                 println("❌ Failed to parse balance: ${e.message}")
