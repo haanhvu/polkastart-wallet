@@ -71,7 +71,6 @@ fun decodeAccountInfo(bytes: ByteArray): AccountInfo {
     return AccountInfo(free, reserved, miscFrozen, feeFrozen)
 }
 
-
 fun getAccountInfoThroughWebSocket(publicKey: ByteArray, onResult: (BigDecimal?) -> Unit) {
     val client = OkHttpClient.Builder()
         .readTimeout(10, TimeUnit.SECONDS)
@@ -82,6 +81,7 @@ fun getAccountInfoThroughWebSocket(publicKey: ByteArray, onResult: (BigDecimal?)
         .build()
 
     val storageKey = getSystemAccountStorageKey(publicKey)
+    println("🎉 Storage Key: " + storageKey)
 
     val requestJson = Json.encodeToString(
         RpcRequest(
