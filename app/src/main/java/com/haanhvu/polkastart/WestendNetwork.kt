@@ -77,36 +77,38 @@ fun getAccountInfoThroughWebSocket(publicKey: ByteArray, onResult: (BigDecimal?)
         .build()
 
     val request = Request.Builder()
-        .url("wss://westend-rpc.polkadot.io")
+        .url("wss://westend-asset-hub-rpc.polkadot.io")
         .build()
 
     val storageKey = getSystemAccountStorageKey(publicKey)
-    println("🎉 Storage Key: " + storageKey)
+    println("Storage Key: " + storageKey)
 
     val requestJson = Json.encodeToString(
         RpcRequest(
             method = "state_getStorage",
-            params = listOf(storageKey)
+            //params = listOf(storageKey)
+            params = listOf("0xf0c365c3cf59d671eb72da0e7a4113c49f1f0515f462cdcf84e0f1d6045dfcbb")
         )
     )
 
     println("Json serialization class = ${Json::class.qualifiedName}")
-    println("📤 Sending JSON: $requestJson")
+    println("Sending JSON: $requestJson")
 
     val listener = object : WebSocketListener() {
         override fun onOpen(webSocket: WebSocket, response: Response) {
-            println("✅ WebSocket connected")
+            println("WebSocket connected")
             webSocket.send(requestJson)
         }
 
         override fun onMessage(webSocket: WebSocket, text: String) {
-            println("📩 Response: $text")
+            println("Response: $text")
 
             try {
                 val json = Json { ignoreUnknownKeys = true }
                 val response = json.decodeFromString<RpcResponse<String>>(text)
 
                 val resultHex = response.result ?: throw Exception("No result field")
+                println("Result from response: $resultHex")
 
                 if (!resultHex.startsWith("0x")) {
                     throw Exception("Invalid result hex format")
@@ -115,14 +117,14 @@ fun getAccountInfoThroughWebSocket(publicKey: ByteArray, onResult: (BigDecimal?)
                 val rawBytes = Hex.decode(resultHex.removePrefix("0x"))
                 val accountInfo = decodeAccountInfo(rawBytes)
 
-                println("✅ Decoded AccountInfo: $accountInfo")
+                println("Decoded AccountInfo: $accountInfo")
 
 
                 val balance = BigDecimal(accountInfo.free.toString())
                     .divide(BigDecimal("1000000000000"))
                 onResult(balance)
             } catch (e: Exception) {
-                println("❌ Failed to parse balance: ${e.message}")
+                println("Failed to parse balance: ${e}")
                 onResult(null)
             } finally {
                 webSocket.close(1000, null)
@@ -131,7 +133,7 @@ fun getAccountInfoThroughWebSocket(publicKey: ByteArray, onResult: (BigDecimal?)
 
 
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-            println("🚨 WebSocket failure: ${t.message}")
+            println("WebSocket failure: ${t.message}")
             onResult(null)
         }
     }
