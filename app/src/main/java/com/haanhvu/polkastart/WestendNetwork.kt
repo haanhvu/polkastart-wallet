@@ -87,7 +87,8 @@ fun getAccountInfoThroughWebSocket(publicKey: ByteArray, onResult: (BigDecimal?)
         RpcRequest(
             method = "state_getStorage",
             //params = listOf(storageKey)
-            params = listOf("0xf0c365c3cf59d671eb72da0e7a4113c49f1f0515f462cdcf84e0f1d6045dfcbb")
+            //params = listOf("0xf0c365c3cf59d671eb72da0e7a4113c49f1f0515f462cdcf84e0f1d6045dfcbb")
+            params = listOf("0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9e1bb164048e42d4e948aaadca683619f86b572176b3c6d2268022811d16e28c7003e882b4438a5d5970b0705ad463c33")
         )
     )
 
@@ -107,14 +108,26 @@ fun getAccountInfoThroughWebSocket(publicKey: ByteArray, onResult: (BigDecimal?)
                 val json = Json { ignoreUnknownKeys = true }
                 val response = json.decodeFromString<RpcResponse<String>>(text)
 
-                val resultHex = response.result ?: throw Exception("No result field")
+                var resultHex = response.result ?: throw Exception("No result field")
                 println("Result from response: $resultHex")
 
                 if (!resultHex.startsWith("0x")) {
                     throw Exception("Invalid result hex format")
                 }
 
-                val rawBytes = Hex.decode(resultHex.removePrefix("0x"))
+                val bytes = resultHex.removePrefix("0x")
+                    .chunked(2)
+                    .map { it.toInt(16).toByte() }
+                    .toByteArray()
+
+                val free = bytes.sliceArray(16 until 32)
+
+                val balance = java.math.BigInteger(1, free.reversedArray())
+                val finalBalance = BigDecimal(balance).movePointLeft(12)
+                onResult(finalBalance)
+
+                // Problem starts from here
+                /*val rawBytes = Hex.decode(resultHex.removePrefix("0x"))
                 val accountInfo = decodeAccountInfo(rawBytes)
 
                 println("Decoded AccountInfo: $accountInfo")
@@ -122,7 +135,7 @@ fun getAccountInfoThroughWebSocket(publicKey: ByteArray, onResult: (BigDecimal?)
 
                 val balance = BigDecimal(accountInfo.free.toString())
                     .divide(BigDecimal("1000000000000"))
-                onResult(balance)
+                onResult(balance)*/
             } catch (e: Exception) {
                 println("Failed to parse balance: ${e}")
                 onResult(null)
