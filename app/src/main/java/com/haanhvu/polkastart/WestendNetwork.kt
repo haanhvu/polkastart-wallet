@@ -9,7 +9,6 @@ import kotlinx.serialization.json.*
 import net.jpountz.xxhash.XXHashFactory
 import okhttp3.*
 import org.bouncycastle.crypto.digests.Blake2bDigest
-import org.bouncycastle.util.encoders.Hex
 
 val Json = Json { encodeDefaults = true }
 
@@ -34,26 +33,6 @@ data class RpcResponse<T>(
     val result: T? = null,
     val error: RpcError? = null
 )
-
-data class AccountInfo(
-    val free: BigInteger,
-    val reserved: BigInteger,
-    val miscFrozen: BigInteger,
-    val feeFrozen: BigInteger
-)
-
-fun xxhash128(input: ByteArray): ByteArray {
-    val factory = XXHashFactory.fastestInstance()
-    val hash1 = factory.hash32().hash(input, 0, input.size, 0)
-    val hash2 = factory.hash32().hash(input, 0, input.size, 1)
-
-    return ByteBuffer.allocate(16)
-        .putInt(hash1)
-        .putInt(0) // pad 4 bytes
-        .putInt(hash2)
-        .putInt(0) // pad 4 bytes
-        .array()
-}
 
 fun xxhash64(input: ByteArray, seed: Long): ByteArray {
     val factory = XXHashFactory.fastestInstance()
@@ -83,22 +62,11 @@ fun blake2b128Concat(publicKey: ByteArray): ByteArray {
 fun getSystemAccountStorageKey(publicKey: ByteArray): String {
     val systemHash = twox128("System".toByteArray())
     val accountHash = twox128("Account".toByteArray())
-    val hash = blake2b128Concat(publicKey)
+    val publicKeyWithHash = blake2b128Concat(publicKey)
 
-    val result = systemHash + accountHash + hash
-    val realResult = result.joinToString("") { "%02x".format(it) }
-    return "0x$realResult"
-}
-
-fun decodeAccountInfo(bytes: ByteArray): AccountInfo {
-    val buffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
-
-    val free = buffer.long.toULong().toBigInteger()
-    val reserved = buffer.long.toULong().toBigInteger()
-    val miscFrozen = buffer.long.toULong().toBigInteger()
-    val feeFrozen = buffer.long.toULong().toBigInteger()
-
-    return AccountInfo(free, reserved, miscFrozen, feeFrozen)
+    val resultByte = systemHash + accountHash + publicKeyWithHash
+    val resultHex = resultByte.joinToString("") { "%02x".format(it) }
+    return "0x$resultHex"
 }
 
 fun getAccountInfoThroughWebSocket(publicKey: ByteArray, onResult: (BigDecimal?) -> Unit) {
@@ -111,19 +79,13 @@ fun getAccountInfoThroughWebSocket(publicKey: ByteArray, onResult: (BigDecimal?)
         .build()
 
     val storageKey = getSystemAccountStorageKey(publicKey)
-    println("Storage Key: " + storageKey)
 
     val requestJson = Json.encodeToString(
         RpcRequest(
             method = "state_getStorage",
             params = listOf(storageKey)
-            //params = listOf("0xf0c365c3cf59d671eb72da0e7a4113c49f1f0515f462cdcf84e0f1d6045dfcbb")
-            //params = listOf("0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9e1bb164048e42d4e948aaadca683619f86b572176b3c6d2268022811d16e28c7003e882b4438a5d5970b0705ad463c33")
         )
     )
-
-    println("Json serialization class = ${Json::class.qualifiedName}")
-    println("Sending JSON: $requestJson")
 
     val listener = object : WebSocketListener() {
         override fun onOpen(webSocket: WebSocket, response: Response) {
@@ -132,40 +94,26 @@ fun getAccountInfoThroughWebSocket(publicKey: ByteArray, onResult: (BigDecimal?)
         }
 
         override fun onMessage(webSocket: WebSocket, text: String) {
-            println("Response: $text")
-
             try {
                 val json = Json { ignoreUnknownKeys = true }
                 val response = json.decodeFromString<RpcResponse<String>>(text)
 
                 var resultHex = response.result ?: throw Exception("No result field")
-                println("Result from response: $resultHex")
 
                 if (!resultHex.startsWith("0x")) {
                     throw Exception("Invalid result hex format")
                 }
 
-                val bytes = resultHex.removePrefix("0x")
+                val resultBytes = resultHex.removePrefix("0x")
                     .chunked(2)
                     .map { it.toInt(16).toByte() }
                     .toByteArray()
 
-                val free = bytes.sliceArray(16 until 32)
+                val free = resultBytes.sliceArray(16 until 32)
 
-                val balance = java.math.BigInteger(1, free.reversedArray())
-                val finalBalance = BigDecimal(balance).movePointLeft(12)
-                onResult(finalBalance)
-
-                // Problem starts from here
-                /*val rawBytes = Hex.decode(resultHex.removePrefix("0x"))
-                val accountInfo = decodeAccountInfo(rawBytes)
-
-                println("Decoded AccountInfo: $accountInfo")
-
-
-                val balance = BigDecimal(accountInfo.free.toString())
-                    .divide(BigDecimal("1000000000000"))
-                onResult(balance)*/
+                val balanceInteger = java.math.BigInteger(1, free.reversedArray())
+                val realBalance = BigDecimal(balanceInteger).movePointLeft(12)
+                onResult(realBalance)
             } catch (e: Exception) {
                 println("Failed to parse balance: ${e}")
                 onResult(null)
