@@ -6,6 +6,7 @@ import java.nio.ByteOrder
 import java.util.concurrent.TimeUnit
 import kotlinx.serialization.*
 import kotlinx.serialization.json.*
+import net.jpountz.xxhash.XXHashFactory
 import okhttp3.*
 import org.bouncycastle.crypto.digests.Blake2bDigest
 import org.bouncycastle.util.encoders.Hex
@@ -41,6 +42,30 @@ data class AccountInfo(
     val feeFrozen: BigInteger
 )
 
+fun xxhash128(input: ByteArray): ByteArray {
+    val factory = XXHashFactory.fastestInstance()
+    val hash1 = factory.hash32().hash(input, 0, input.size, 0)
+    val hash2 = factory.hash32().hash(input, 0, input.size, 1)
+
+    return ByteBuffer.allocate(16)
+        .putInt(hash1)
+        .putInt(0) // pad 4 bytes
+        .putInt(hash2)
+        .putInt(0) // pad 4 bytes
+        .array()
+}
+
+fun xxhash64(input: ByteArray, seed: Long): ByteArray {
+    val factory = XXHashFactory.fastestInstance()
+    val hasher = factory.hash64()
+    val hash = hasher.hash(input, 0, input.size, seed)
+    return ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN).putLong(hash).array()
+}
+
+fun twox128(input: ByteArray): ByteArray {
+    return xxhash64(input, 0) + xxhash64(input, 1)
+}
+
 fun blake2b128(input: ByteArray): ByteArray {
     val digest = Blake2bDigest(128) // 128 bits = 16 bytes
     digest.update(input, 0, input.size)
@@ -49,15 +74,20 @@ fun blake2b128(input: ByteArray): ByteArray {
     return output
 }
 
-fun blake2b128Concat(publicKey: ByteArray): String {
+fun blake2b128Concat(publicKey: ByteArray): ByteArray {
     val hashPart = blake2b128(publicKey)
-    val result = hashPart + publicKey
-    return result.joinToString("") { "%02x".format(it) }
+    val fullHash = hashPart + publicKey
+    return fullHash
 }
 
 fun getSystemAccountStorageKey(publicKey: ByteArray): String {
-    val hash = blake2b128Concat(publicKey)     // Step 2
-    return "0x$hash"
+    val systemHash = twox128("System".toByteArray())
+    val accountHash = twox128("Account".toByteArray())
+    val hash = blake2b128Concat(publicKey)
+
+    val result = systemHash + accountHash + hash
+    val realResult = result.joinToString("") { "%02x".format(it) }
+    return "0x$realResult"
 }
 
 fun decodeAccountInfo(bytes: ByteArray): AccountInfo {
@@ -86,9 +116,9 @@ fun getAccountInfoThroughWebSocket(publicKey: ByteArray, onResult: (BigDecimal?)
     val requestJson = Json.encodeToString(
         RpcRequest(
             method = "state_getStorage",
-            //params = listOf(storageKey)
+            params = listOf(storageKey)
             //params = listOf("0xf0c365c3cf59d671eb72da0e7a4113c49f1f0515f462cdcf84e0f1d6045dfcbb")
-            params = listOf("0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9e1bb164048e42d4e948aaadca683619f86b572176b3c6d2268022811d16e28c7003e882b4438a5d5970b0705ad463c33")
+            //params = listOf("0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9e1bb164048e42d4e948aaadca683619f86b572176b3c6d2268022811d16e28c7003e882b4438a5d5970b0705ad463c33")
         )
     )
 

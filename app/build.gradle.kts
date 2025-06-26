@@ -42,6 +42,7 @@ dependencies {
     implementation(libs.material)
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
     implementation("com.ionspin.kotlin:bignum:0.3.8")
+    implementation("net.jpountz.lz4:lz4:1.3.0")
     implementation("org.bitcoinj:bitcoinj-core:0.15.10") {
         exclude(group = "org.bouncycastle", module = "bcprov-jdk15on")
     } // for Base58 encoding
