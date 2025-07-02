@@ -1,4 +1,4 @@
-package com.haanhvu.polkastart
+package com.haanhvu.polkastart.data.storage
 
 import android.content.Context
 import android.content.SharedPreferences

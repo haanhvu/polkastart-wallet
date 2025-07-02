@@ -1,4 +1,4 @@
-package com.haanhvu.polkastart
+package com.haanhvu.polkastart.crypto
 
 import org.web3j.crypto.MnemonicUtils
 import java.security.SecureRandom

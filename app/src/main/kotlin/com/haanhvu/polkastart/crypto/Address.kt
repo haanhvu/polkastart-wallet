@@ -1,4 +1,4 @@
-package com.haanhvu.polkastart
+package com.haanhvu.polkastart.crypto
 
 import org.bouncycastle.crypto.digests.Blake2bDigest
 import org.bitcoinj.core.Base58

@@ -1,9 +1,7 @@
-package com.haanhvu.polkastart
+package com.haanhvu.polkastart.crypto
 
 import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.web3j.crypto.MnemonicUtils
-import java.security.SecureRandom
 import java.security.Security
 
 fun generateKeyPairFromMnemonic(mnemonic: String): Pair<ByteArray, ByteArray> {

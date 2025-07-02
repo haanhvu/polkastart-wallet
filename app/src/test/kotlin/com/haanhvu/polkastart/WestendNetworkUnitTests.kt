@@ -1,6 +1,6 @@
 package com.haanhvu.polkastart
 
-import getAccountInfoThroughWebSocket
+import com.haanhvu.polkastart.data.remote.getAccountInfoThroughWebSocket
 import org.junit.Test
 
 class WestendNetworkUnitTests {
