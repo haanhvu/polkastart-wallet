@@ -1,28 +1,27 @@
 package com.haanhvu.polkastart.data.local.balance
 
+import com.haanhvu.polkastart.data.remote.subscribeToBalance
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 
 class BalanceRepository(
     private val dao: BalanceDao,
-    //private val substrateApi: SubstrateApi // WebSocket handler
 ) {
-    fun observeBalance(accountId: String): Flow<BalanceEntity?> {
-        return dao.observeBalance(accountId)
+    fun observeBalance(publicKey: ByteArray): Flow<BalanceEntity?> {
+        return dao.observeBalance(publicKey)
     }
 
-    fun startBalanceSync(accountId: String) {
-        /*substrateApi.subscribeAccountBalance(accountId) { balance ->
+    fun subscribeToBalance(publicKey: ByteArray) {
+        subscribeToBalance(publicKey) { balance ->
             val entity = BalanceEntity(
-                accountId = accountId,
-                free = balance.free,
-                reserved = balance.reserved,
-                miscFrozen = balance.miscFrozen,
-                feeFrozen = balance.feeFrozen,
-                timestamp = System.currentTimeMillis()
+                publicKey = publicKey,
+                free = balance!!,
             )
             CoroutineScope(Dispatchers.IO).launch {
                 dao.insert(entity)
             }
-        }*/
+        }
     }
 }

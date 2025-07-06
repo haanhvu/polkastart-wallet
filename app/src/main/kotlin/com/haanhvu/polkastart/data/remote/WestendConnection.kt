@@ -141,3 +141,20 @@ fun getBalanceThroughWebSocket2(publicKey: ByteArray, onResult: (BigDecimal?) ->
         }
     }
 }
+
+fun subscribeToBalance(publicKey: ByteArray, onResult: (BigDecimal?) -> Unit) {
+    val storageKey = getSystemAccountStorageKey(publicKey)
+
+    WebSocketManager.setBalanceUpdateListener { onResult }
+
+    WebSocketManager.sendRequest(
+        method = "state_subscribeStorage",
+        params = listOf(storageKey)
+    ) { text ->
+        val json = Json { ignoreUnknownKeys = true }
+        val response = json.decodeFromString<RpcResponse<String>>(text)
+        var subscriptionId = response.result ?: throw Exception("No result field")
+        println("Subscribed with ID $subscriptionId")
+        // Now all future messages with "method": "state_storage" will be received in onMessage()
+    }
+}

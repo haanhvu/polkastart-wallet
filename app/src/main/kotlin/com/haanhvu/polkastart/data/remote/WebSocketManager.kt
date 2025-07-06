@@ -8,6 +8,7 @@ import okhttp3.Request
 import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
+import java.math.BigDecimal
 
 @Serializable
 data class RpcRequest(
@@ -24,9 +25,17 @@ data class RpcError(
 )
 
 @Serializable
+data class Params(
+    val subscription: String = "",
+    val result: List<List<String>> = emptyList()
+)
+
+@Serializable
 data class RpcResponse<T>(
     val jsonrpc: String,
     val id: Int,
+    val method: String = "",
+    val params: Params = Params(),
     val result: T? = null,
     val error: RpcError? = null
 )
@@ -42,6 +51,12 @@ object WebSocketManager {
 
     private var isConnected = false
     private val messageQueue = mutableListOf<String>()
+
+    private var balanceUpdateListener: ((BigDecimal) -> Unit)? = null
+
+    fun setBalanceUpdateListener(listener: (BigDecimal) -> Unit) {
+        balanceUpdateListener = listener
+    }
 
     fun connectIfNeeded() {
         if (webSocket != null && isConnected) return
@@ -64,11 +79,30 @@ object WebSocketManager {
                     val response = json.decodeFromString<RpcResponse<String>>(text)
                     if (response.id != 0) {
                         pendingCallbacks.remove(response.id)?.invoke(text)
-                    } //else if (json.optString("method") == "state_storage") {
-                        // Handle subscription notification
-                        //println("Subscription event: $text")
-                        // Route this via subscription ID if needed
-                    //}
+                    } else if (response.method == "state_storage") {
+                        val resultHex = response.params.result[0][1]
+                        try {
+                            if (!resultHex.startsWith("0x")) {
+                                throw Exception("Invalid result hex format")
+                            }
+
+                            val resultBytes = resultHex.removePrefix("0x")
+                                .chunked(2)
+                                .map { it.toInt(16).toByte() }
+                                .toByteArray()
+
+                            val free = resultBytes.sliceArray(16 until 32)
+
+                            val balanceInteger = java.math.BigInteger(1, free.reversedArray())
+                            val realBalance = BigDecimal(balanceInteger).movePointLeft(12)
+
+                            balanceUpdateListener?.invoke(realBalance)
+                        } catch (e: Exception) {
+                            println("Failed to parse balance: ${e}")
+                        } finally {
+                            WebSocketManager.close()
+                        }
+                    }
                 } catch (e: Exception) {
                     println("Failed to handle message: ${e.message}")
                 }
@@ -124,5 +158,6 @@ object WebSocketManager {
         webSocket?.close(1000, null)
         webSocket = null
         isConnected = false
+        balanceUpdateListener = null
     }
 }

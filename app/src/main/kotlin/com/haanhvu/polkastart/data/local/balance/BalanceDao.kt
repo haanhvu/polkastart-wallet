@@ -8,8 +8,8 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface BalanceDao {
-    @Query("SELECT * FROM balances WHERE accountId = :accountId")
-    fun observeBalance(accountId: String): Flow<BalanceEntity?>
+    @Query("SELECT * FROM balances WHERE publicKey = :publicKey")
+    fun observeBalance(publicKey: ByteArray): Flow<BalanceEntity?>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(balance: BalanceEntity)
