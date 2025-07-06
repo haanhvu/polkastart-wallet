@@ -3,36 +3,11 @@ package com.haanhvu.polkastart.data.remote
 import java.math.BigDecimal
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import java.util.concurrent.TimeUnit
 import kotlinx.serialization.*
 import kotlinx.serialization.json.*
 import net.jpountz.xxhash.XXHashFactory
 import okhttp3.*
 import org.bouncycastle.crypto.digests.Blake2bDigest
-
-val Json = Json { encodeDefaults = true }
-
-@Serializable
-data class RpcRequest(
-    val jsonrpc: String = "2.0",
-    val id: Int = 1,
-    val method: String,
-    val params: List<String>
-)
-
-@Serializable
-data class RpcError(
-    val code: Int,
-    val message: String
-)
-
-@Serializable
-data class RpcResponse<T>(
-    val jsonrpc: String,
-    val id: Int,
-    val result: T? = null,
-    val error: RpcError? = null
-)
 
 fun xxhash64(input: ByteArray, seed: Long): ByteArray {
     val factory = XXHashFactory.fastestInstance()
@@ -69,16 +44,16 @@ fun getSystemAccountStorageKey(publicKey: ByteArray): String {
     return "0x$resultHex"
 }
 
-fun getAccountInfoThroughWebSocket(publicKey: ByteArray, onResult: (BigDecimal?) -> Unit) {
-    val client = OkHttpClient.Builder()
-        .readTimeout(10, TimeUnit.SECONDS)
-        .build()
+fun getBalanceThroughWebSocket1(publicKey: ByteArray, onResult: (BigDecimal?) -> Unit) {
+    val client = OkHttpClient()
 
     val request = Request.Builder()
         .url("wss://westend-asset-hub-rpc.polkadot.io")
         .build()
 
     val storageKey = getSystemAccountStorageKey(publicKey)
+
+    val Json = Json { encodeDefaults = true }
 
     val requestJson = Json.encodeToString(
         RpcRequest(
@@ -90,6 +65,7 @@ fun getAccountInfoThroughWebSocket(publicKey: ByteArray, onResult: (BigDecimal?)
     val listener = object : WebSocketListener() {
         override fun onOpen(webSocket: WebSocket, response: Response) {
             println("WebSocket connected")
+            println("Sent: $requestJson")
             webSocket.send(requestJson)
         }
 
@@ -122,7 +98,6 @@ fun getAccountInfoThroughWebSocket(publicKey: ByteArray, onResult: (BigDecimal?)
             }
         }
 
-
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
             println("WebSocket failure: ${t.message}")
             onResult(null)
@@ -130,4 +105,39 @@ fun getAccountInfoThroughWebSocket(publicKey: ByteArray, onResult: (BigDecimal?)
     }
 
     client.newWebSocket(request, listener)
+}
+
+fun getBalanceThroughWebSocket2(publicKey: ByteArray, onResult: (BigDecimal?) -> Unit) {
+    val storageKey = getSystemAccountStorageKey(publicKey)
+
+    WebSocketManager.sendRequest(
+        method = "state_getStorage",
+        params = listOf(storageKey)
+    ) { text ->
+        try {
+            val json = Json { ignoreUnknownKeys = true }
+            val response = json.decodeFromString<RpcResponse<String>>(text)
+            var resultHex = response.result ?: throw Exception("No result field")
+
+            if (!resultHex.startsWith("0x")) {
+                throw Exception("Invalid result hex format")
+            }
+
+            val resultBytes = resultHex.removePrefix("0x")
+                .chunked(2)
+                .map { it.toInt(16).toByte() }
+                .toByteArray()
+
+            val free = resultBytes.sliceArray(16 until 32)
+
+            val balanceInteger = java.math.BigInteger(1, free.reversedArray())
+            val realBalance = BigDecimal(balanceInteger).movePointLeft(12)
+            onResult(realBalance)
+        } catch (e: Exception) {
+            println("Failed to parse balance: ${e}")
+            onResult(null)
+        } finally {
+            WebSocketManager.close()
+        }
+    }
 }
